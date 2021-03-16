@@ -8,5 +8,14 @@ services:
     container_name: mongo
     ports: 
       - "27017-27019:27017-27019"
+      
+    mh-account:
+        environment:
+            DB_URL: mongodb://root:root@localhost:27017
+            DB: test 
+        image: superdeano/mh-account:0.0.0
+        depends_on: mongo 
+        
+          
 version: "3"
 

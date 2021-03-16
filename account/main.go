@@ -8,6 +8,7 @@ import (
 	"github.com/superDeano/account/Dao"
 	"github.com/superDeano/account/Handler"
 	"log"
+	"os"
 )
 
 func main() {
@@ -21,17 +22,16 @@ func main() {
 }
 
 func setUpRoutes(e *echo.Echo) {
-	e.PUT("/addUser", Handler.AddAccount)
-	e.POST("/auth", Handler.AuthenticateUser)
-	e.GET("/", Handler.Test)
-	e.DELETE("/deleteUser/:"+Dao.AccountUsername, Handler.DeleteUser)
+	e.PUT("/account/addUser", Handler.AddAccount)
+	e.POST("/account/auth", Handler.AuthenticateUser)
+	e.GET("/account/", Handler.Test)
+	e.DELETE("/account/deleteUser/:"+Dao.AccountUsername, Handler.DeleteUser)
 }
 
 func setUpDbConnection() {
 	config := &bongo.Config{
-		//TODO get that from env variables
-		ConnectionString: "mongodb://root:root@localhost:27017",
-		Database:         "test",
+		ConnectionString: os.Getenv("DB_URL"),
+		Database:         os.Getenv("DB"),
 	}
 	var err error
 	Dao.Db, err = bongo.Connect(config)
