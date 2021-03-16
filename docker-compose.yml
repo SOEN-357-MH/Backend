@@ -1,0 +1,12 @@
+services: 
+  mongodb-dev: 
+    environment: 
+      MONGO_INITDB_DATABASE: test # database name to give
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root
+    image: mongo
+    container_name: mongo
+    ports: 
+      - "27017-27019:27017-27019"
+version: "3"
+
