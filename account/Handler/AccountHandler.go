@@ -17,11 +17,15 @@ func AddAccount(c echo.Context) error {
 }
 
 func AuthenticateUser(c echo.Context) error {
-	return c.JSON(http.StatusOK, true)
+	user := &Model.Account{}
+	if err := c.Bind(&user); err != nil {
+		return c.String(http.StatusInternalServerError, "Could not authenticate user\n"+err.Error())
+	}
+	return c.JSON(http.StatusOK, Dao.AuthenticateUser(user))
 }
 
 func DeleteUser(c echo.Context) error {
-	return c.JSON(http.StatusOK, false)
+	return c.JSON(http.StatusOK, Dao.DeleteUser(c.Param(Dao.AccountUsername)))
 }
 
 func Test(c echo.Context) error {

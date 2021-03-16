@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	fmt.Println("test")
+	fmt.Println("Starting Account MicroService")
 	e := echo.New()
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
@@ -21,15 +21,16 @@ func main() {
 }
 
 func setUpRoutes(e *echo.Echo) {
-	e.GET("/addUser", Handler.AddAccount)
-	e.GET("/auth", Handler.AuthenticateUser)
+	e.PUT("/addUser", Handler.AddAccount)
+	e.POST("/auth", Handler.AuthenticateUser)
 	e.GET("/", Handler.Test)
-	e.GET("/deleteUser", Handler.DeleteUser)
+	e.DELETE("/deleteUser/:"+Dao.AccountUsername, Handler.DeleteUser)
 }
 
 func setUpDbConnection() {
 	config := &bongo.Config{
-		ConnectionString: "localhost",
+		//TODO get that from env variables
+		ConnectionString: "mongodb://root:root@localhost:27017",
 		Database:         "test",
 	}
 	var err error
