@@ -1,7 +1,7 @@
 # Dockerfile for Account MS for MovieHub
 FROM golang:alpine as build
 
-LABEL MAINTAINER=“superDeano”
+LABEL maintainer=“superDeano”
 
 WORKDIR /app
 
@@ -23,4 +23,4 @@ RUN chmod +x main
 
 EXPOSE 7000
 
-CMD [“./main”]
+CMD ["./main"]
