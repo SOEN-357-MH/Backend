@@ -1,25 +1,25 @@
-services: 
-  mongodb-dev: 
-    environment: 
+services:
+  mongodb-dev:
+    environment:
       MONGO_INITDB_DATABASE: test # database name to give
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: root
     image: mongo
     container_name: mongo
-    ports: 
+    ports:
       - "27017-27019:27017-27019"
-      
+
   account-ms:
      environment:
          DB_URL: mongodb://root:root@mongodb-dev:27017
-         DB: test 
-     image: superdeano/mh-account:0.0.2
-     depends_on: 
+         DB: test
+     image: superdeano/mh-account:0.0.3
+     depends_on:
       - mongodb-dev
      container_name: mh-account
      ports:
       - "8080:8080"
-        
-          
+
+
 version: "3"
 
