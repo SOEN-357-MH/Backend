@@ -15,7 +15,7 @@ func AddAccount(c echo.Context) error {
 	if Dao.AddUser(user) {
 		return c.String(http.StatusOK, "Added user\n")
 	} else {
-		return c.String(http.StatusBadRequest, "Did not add user\n")
+		return c.String(http.StatusBadRequest, "Email or username already in use\n")
 	}
 }
 
@@ -24,15 +24,30 @@ func AuthenticateUser(c echo.Context) error {
 	if err := c.Bind(&user); err != nil {
 		return c.String(http.StatusInternalServerError, "Could not authenticate user\n"+err.Error())
 	}
-	return c.JSON(http.StatusOK, Dao.AuthenticateUser(user))
+	if Dao.AuthenticateUser(user) {
+		return c.JSON(http.StatusOK, true)
+	} else {
+		return c.JSON(http.StatusBadRequest, false)
+	}
 }
 
 func DeleteUser(c echo.Context) error {
-	return c.JSON(http.StatusOK, Dao.DeleteUser(c.Param(Dao.AccountUsername)))
+	switch num := Dao.DeleteUser(c.Param(Dao.AccountUsername)); {
+	case num < Dao.Success:
+		return c.JSON(http.StatusBadRequest, "Deleted nothing!")
+	case num > Dao.Success:
+		return c.JSON(http.StatusBadRequest, "Deleted more than one account!")
+	default:
+		return c.JSON(http.StatusOK, "Deleted!")
+	}
 }
 
 func GetUser(c echo.Context) error {
-	return c.JSON(http.StatusOK, Dao.GetUserWithUsername(c.Param(Dao.AccountUsername)))
+	userInfo, err := Dao.GetUserWithUsername(c.Param(Dao.AccountUsername))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, nil)
+	}
+	return c.JSON(http.StatusOK, userInfo)
 
 }
 
