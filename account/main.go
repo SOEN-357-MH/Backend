@@ -1,12 +1,15 @@
 package main
 
 import (
+	"context"
 	"fmt"
-	"github.com/go-bongo/bongo"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/superDeano/account/Dao"
 	"github.com/superDeano/account/Handler"
+	//"github.com/go-bongo/bongo"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
 	"os"
 )
@@ -26,17 +29,17 @@ func setUpRoutes(e *echo.Echo) {
 	e.POST("/account/auth", Handler.AuthenticateUser)
 	e.GET("/account/", Handler.Test)
 	e.DELETE("/account/user/:"+Dao.AccountUsername, Handler.DeleteUser)
+	e.GET("/account/user/:"+Dao.AccountUsername, Handler.GetUser)
 }
 
 func setUpDbConnection() {
-	config := &bongo.Config{
-		ConnectionString: os.Getenv("DB_URL"),
-		Database:         os.Getenv("DB"),
-	}
-	var err error
-	Dao.Db, err = bongo.Connect(config)
+	config := options.Client().ApplyURI(os.Getenv("DB_URL"))
+
+	client, err := mongo.Connect(context.TODO(), config)
 
 	if err != nil {
 		log.Fatal(err)
 	}
+	client.Ping(context.TODO(), nil)
+	Dao.Db = client.Database(os.Getenv("DB")).Collection(Dao.AccountCollection)
 }

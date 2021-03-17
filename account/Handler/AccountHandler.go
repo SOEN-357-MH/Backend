@@ -15,7 +15,7 @@ func AddAccount(c echo.Context) error {
 	if Dao.AddUser(user) {
 		return c.String(http.StatusOK, "Added user\n")
 	} else {
-		return c.String(http.StatusOK, "Did not add user\n")
+		return c.String(http.StatusBadRequest, "Did not add user\n")
 	}
 }
 
@@ -29,6 +29,11 @@ func AuthenticateUser(c echo.Context) error {
 
 func DeleteUser(c echo.Context) error {
 	return c.JSON(http.StatusOK, Dao.DeleteUser(c.Param(Dao.AccountUsername)))
+}
+
+func GetUser(c echo.Context) error {
+	return c.JSON(http.StatusOK, Dao.GetUserWithUsername(c.Param(Dao.AccountUsername)))
+
 }
 
 func Test(c echo.Context) error {
