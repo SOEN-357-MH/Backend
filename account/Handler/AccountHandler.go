@@ -12,8 +12,11 @@ func AddAccount(c echo.Context) error {
 	if err := c.Bind(&user); err != nil {
 		return c.String(http.StatusInternalServerError, "Could not add User\n"+err.Error())
 	}
-	Dao.AddUser(user)
-	return c.String(http.StatusOK, "Added user\n")
+	if Dao.AddUser(user) {
+		return c.String(http.StatusOK, "Added user\n")
+	} else {
+		return c.String(http.StatusOK, "Did not add user\n")
+	}
 }
 
 func AuthenticateUser(c echo.Context) error {

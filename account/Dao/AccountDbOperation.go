@@ -14,11 +14,16 @@ var (
 	Success           = 1
 )
 
-func AddUser(u *Model.Account) {
+func AddUser(u *Model.Account) bool{
+	if UsernameExist(u.Username) {
+		return false
+	}
 	err := Db.Collection(AccountCollection).Save(u)
 	if err != nil {
 		panic(err.Error())
+		return false
 	}
+	return true
 }
 
 func DeleteUser(u string) string {
@@ -50,6 +55,18 @@ func AuthenticateUser(user *Model.Account) bool {
 	for results.Next(userSavedInfo) {
 		if userSavedInfo.Username == user.Username {
 			return userSavedInfo.Password == user.Password
+		}
+	}
+	return false
+}
+
+func UsernameExist(username string) bool {
+	results := Db.Collection(AccountCollection).Find(bson.M{AccountUsername: username})
+	result := &Model.Account{}
+
+	for results.Next(result){
+		if result.Username == username {
+			return true
 		}
 	}
 	return false

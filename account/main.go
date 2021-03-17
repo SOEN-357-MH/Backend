@@ -18,14 +18,14 @@ func main() {
 	e.Use(middleware.Recover())
 	setUpDbConnection()
 	setUpRoutes(e)
-	e.Logger.Fatal(e.Start(":7000"))
+	e.Logger.Fatal(e.Start(":8080"))
 }
 
 func setUpRoutes(e *echo.Echo) {
-	e.PUT("/account/addUser", Handler.AddAccount)
+	e.PUT("/account/user", Handler.AddAccount)
 	e.POST("/account/auth", Handler.AuthenticateUser)
 	e.GET("/account/", Handler.Test)
-	e.DELETE("/account/deleteUser/:"+Dao.AccountUsername, Handler.DeleteUser)
+	e.DELETE("/account/user/:"+Dao.AccountUsername, Handler.DeleteUser)
 }
 
 func setUpDbConnection() {
