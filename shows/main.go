@@ -21,7 +21,7 @@ func setUpServer() {
 	server.Use(middleware.Logger())
 	server.Use(middleware.Recover())
 	setupServerRoutes(server)
-	server.Logger.Fatal(server.Start(":8989"))
+	server.Logger.Fatal(server.Start(os.Getenv("SERVER_PORT")))
 }
 
 func setupServerRoutes(e *echo.Echo) {

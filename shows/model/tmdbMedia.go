@@ -14,7 +14,7 @@ type Media struct {
 	GenreIDS         []int64           `json:"genre_ids,omitempty"`
 	//VoteCount        *int64            `json:"vote_count,omitempty"`
 	OriginalLanguage *OriginalLanguage `json:"original_language,omitempty"`
-	OriginalTitle    *string           `json:"original_title,omitempty"`
+	//OriginalTitle    *string           `json:"original_title,omitempty"`
 	PosterPath       *string           `json:"poster_path,omitempty"`
 	Title            *string           `json:"title,omitempty"`
 	//Video            *bool             `json:"video,omitempty"`
@@ -23,7 +23,7 @@ type Media struct {
 	Overview         *string           `json:"overview,omitempty"`
 	//Popularity       *float64          `json:"popularity,omitempty"`
 	MediaType        *MediaType        `json:"media_type,omitempty"`
-	OriginalName     *string           `json:"original_name,omitempty"`
+	//OriginalName     *string           `json:"original_name,omitempty"`
 	OriginCountry    []string          `json:"origin_country,omitempty"`
 	Name             *string           `json:"name,omitempty"`
 	FirstAirDate     *string           `json:"first_air_date,omitempty"`
