@@ -52,6 +52,9 @@ func GetUser(c echo.Context) error {
 }
 
 func Test(c echo.Context) error {
+	if Dao.Db == nil {
+		return c.JSON(http.StatusInternalServerError, "The DBPointer is nil")
+	}
 	if res := Dao.TestDatabaseConnection(); res ==
 		Dao.Success {
 		return c.JSON(http.StatusOK, "It seems like the app is reachable and database connection is great")
