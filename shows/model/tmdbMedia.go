@@ -12,6 +12,7 @@ type Media struct {
 	Adult            *bool             `json:"adult,omitempty"`
 	BackdropPath     *string           `json:"backdrop_path,omitempty"`
 	GenreIDS         []int64           `json:"genre_ids,omitempty"`
+	Genres         []string           `json:"genres,omitempty"`
 	//VoteCount        *int64            `json:"vote_count,omitempty"`
 	OriginalLanguage *OriginalLanguage `json:"original_language,omitempty"`
 	//OriginalTitle    *string           `json:"original_title,omitempty"`

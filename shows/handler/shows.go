@@ -13,6 +13,8 @@ import (
 )
 
 var tmdbApi *tmdb.TMDb
+var movieGenres *tmdb.Genre
+var showsGenres *tmdb.Genre
 
 func GetHealth(c echo.Context) error {
 	configUrl := fmt.Sprintf("%sconfiguration/%s", variable.BaseUrl, getApiAuth())
@@ -51,25 +53,26 @@ func ConfigureSomeKeyVariables() {
 	}
 	go AssignVariables(&config)
 	go setUpTmdbLib()
+	go getMovieGenresLocally()
+	go getShowGenresLocally()
 	defer resp.Body.Close()
 }
 
 func AssignVariables(config *model.Configuration) {
 	variable.ImageUrl = *config.Images.BaseURL
 	variable.ImageSize = config.Images.ProfileSizes[len(config.Images.ProfileSizes)-1]
-	variable.ChangeKeys = make(map[string]string)
-	for _, value := range config.ChangeKeys {
-		variable.ChangeKeys[value] = value
-	}
 }
 
 func GetTrendingShows(c echo.Context) error {
+	var status = http.StatusOK
 	pageNumber, err := getPageNumber(c.Param(variable.Page))
 	res, err := GetTrending(string(model.Tv), pageNumber)
 	if err != nil {
 		log.Fatal("Error when getting Trending Movies")
+		status = http.StatusExpectationFailed
 	}
-	return c.JSON(http.StatusOK, res)
+	assignShowGenre(res)
+	return c.JSON(status, res)
 }
 
 func getPageNumber(page string) (string, error) {
@@ -102,6 +105,25 @@ func GetTrending(mediaType string, pageNumber string) (*model.Result, error) {
 	return results, nil
 }
 
+func assignShowGenre(result *model.Result) {
+	for index, movie := range result.Results {
+		result.Results[index].Genres = []string{}
+		for _, genreId := range movie.GenreIDS {
+			result.Results[index].Genres = append(result.Results[index].Genres, getShowGenreFromId(int(genreId)))
+		}
+		result.Results[index].GenreIDS = nil
+	}
+}
+
+func getShowGenreFromId(id int) string {
+	for _, genre := range showsGenres.Genres {
+		if genre.ID == id {
+			return genre.Name
+		}
+	}
+	return ""
+}
+
 func GetImageSize(c echo.Context) error {
 	return c.String(http.StatusOK, variable.ImageSize)
 }
@@ -110,22 +132,23 @@ func GetImageBaseUrl(c echo.Context) error {
 	return c.String(http.StatusOK, variable.ImageUrl)
 }
 
-func GetChangeKeys(c echo.Context) error {
-	return c.JSON(http.StatusOK, variable.ChangeKeys)
-}
+//func GetChangeKeys(c echo.Context) error {
+//	return c.JSON(http.StatusOK, variable.ChangeKeys)
+//}
 
 func getApiAuth() string {
 	return "?api_key=" + variable.ApiKey
 }
 
-func getSearchOptions(c echo.Context) (map[string]string, error) {
+func getSearchOptions(c echo.Context) (string, error) {
 	pageNumber, err := getPageNumber(c.Param(variable.Page))
 	if err != nil {
 		log.Println("Error when parsing page number, page number set to default")
 	}
-	options := make(map[string]string)
-	options["language"] = string(model.En)
-	options["page"] = pageNumber
+	//options := make(map[string]string)
+	//options["language"] = string(model.En)
+	//options["page"] = pageNumber
+	options := fmt.Sprintf("&page=%v&language=%v&region=%v", pageNumber, model.En, "CA")
 	return options, err
 }
 
@@ -133,20 +156,29 @@ func SearchShows(c echo.Context) error {
 	keywords := c.Param(variable.Keywords)
 	options, err := getSearchOptions(c)
 	if err != nil {
-		log.Fatal("Error during parsing of options, setting variables to default")
+		log.Println("Error during parsing of options, setting variables to default")
 	}
-	res, err := tmdbApi.SearchTv(keywords, options)
+	uri := fmt.Sprintf("%vsearch/tv%v&%v&query=%v", variable.BaseUrl, getApiAuth(), options, keywords)
+	res, err := http.Get(uri)
+	var status = http.StatusOK
+	var result = &model.Result{}
+	if err = json.NewDecoder(res.Body).Decode(&result); err != nil {
+		log.Println("Error when decoding result from searching for Shows")
+		status = http.StatusExpectationFailed
+	}
+	//res, err := tmdbApi.SearchTv(keywords, options)
 	if err != nil {
 		log.Println("Error when searching for Shows")
-		return c.JSON(http.StatusInternalServerError, res)
+		status = http.StatusExpectationFailed
 	}
-	return c.JSON(http.StatusOK, res)
+	assignShowGenre(result)
+	return c.JSON(status, result)
 
 }
 
 func GetShowWatchProvider(c echo.Context) error {
 	showId := c.Param(variable.Id)
-	url := fmt.Sprintf("%vtv/%v/watch/providers%s", variable.BaseUrl,showId, getApiAuth())
+	url := fmt.Sprintf("%vtv/%v/watch/providers%s", variable.BaseUrl, showId, getApiAuth())
 	res, err := http.Get(url)
 	if err != nil {
 		log.Println("Error when searching for Show Providers")
@@ -157,6 +189,27 @@ func GetShowWatchProvider(c echo.Context) error {
 		return c.JSON(http.StatusExpectationFailed, providers)
 	}
 	return c.JSON(http.StatusOK, providers)
+}
+
+func GetShowGenres(c echo.Context) error {
+	if showsGenres == nil {
+		log.Println("Show Genres is nill")
+		go getShowGenresLocally()
+		return c.JSON(http.StatusExpectationFailed, nil)
+	} else {
+		return c.JSON(http.StatusOK, showsGenres)
+	}
+}
+
+func getShowGenresLocally() {
+	options := make(map[string]string)
+	options[variable.Language] = string(model.En)
+	if res, err := tmdbApi.GetTvGenres(options); err != nil {
+		log.Println("Error when getting TV Genres")
+		showsGenres = nil
+	} else {
+		showsGenres = res
+	}
 }
 
 func Test(c echo.Context) error {

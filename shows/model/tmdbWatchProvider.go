@@ -13,7 +13,7 @@ type Results struct {
 	//Be *Ar `json:"BE,omitempty"`
 	//Br *Ar `json:"BR,omitempty"`
 	CA *Ar `json:"CA,omitempty"`
-	Ch *Ar `json:"CH,omitempty"`
+	//Ch *Ar `json:"CH,omitempty"`
 	//Cl *Ar `json:"CL,omitempty"`
 	//Co *Ar `json:"CO,omitempty"`
 	//Cz *Ar `json:"CZ,omitempty"`
@@ -23,8 +23,8 @@ type Results struct {
 	//Ee *Ar `json:"EE,omitempty"`
 	//Es *Es `json:"ES,omitempty"`
 	//Fi *Ar `json:"FI,omitempty"`
-	Fr *Ar `json:"FR,omitempty"`
-	GB *Ar `json:"GB,omitempty"`
+	//Fr *Ar `json:"FR,omitempty"`
+	//GB *Ar `json:"GB,omitempty"`
 	//Gr *Ar `json:"GR,omitempty"`
 	//Hu *Ar `json:"HU,omitempty"`
 	//ID *Ar `json:"ID,omitempty"`
@@ -50,7 +50,7 @@ type Results struct {
 	//Sg *Ar `json:"SG,omitempty"`
 	//Th *Ar `json:"TH,omitempty"`
 	//Tr *Ar `json:"TR,omitempty"`
-	Us *Ar `json:"US,omitempty"`
+	//Us *Ar `json:"US,omitempty"`
 	//Ve *Ar `json:"VE,omitempty"`
 	//Za *Es `json:"ZA,omitempty"`
 }
@@ -70,12 +70,12 @@ type Ad struct {
 	ProviderName    *string `json:"provider_name,omitempty"`
 }
 
-type Es struct {
-	Link *string `json:"link,omitempty"`
-	Buy  []Ad    `json:"buy,omitempty"`
-}
+//type Es struct {
+//	Link *string `json:"link,omitempty"`
+//	Buy  []Ad    `json:"buy,omitempty"`
+//}
 
-type Ro struct {
-	Link     *string `json:"link,omitempty"`
-	Flatrate []Ad    `json:"flatrate,omitempty"`
-}
+//type Ro struct {
+//	Link     *string `json:"link,omitempty"`
+//	Flatrate []Ad    `json:"flatrate,omitempty"`
+//}

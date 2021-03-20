@@ -8,5 +8,6 @@ var (
 	Keywords   = "keywords"
 	Page       = "page"
 	Id = "id"
-	ChangeKeys map[string]string
+	Language = "language"
+	//ChangeKeys map[string]string
 )
