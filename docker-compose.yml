@@ -20,6 +20,14 @@ services:
      ports:
       - "8080:8080"
 
-
+ shows-ms:
+     environment:
+         SERVER_PORT: ":8989"
+         BASE_URL: "https://api.themoviedb.org/3/"
+         API_KEY: "" # API_KEY to insert
+      image: superdeano/mh-shows:0.0.1
+      container_name: mh-shows
+      ports:
+          - "8989:8989"
 version: "3"
 
