@@ -31,7 +31,7 @@ func SearchMovie(c echo.Context) error {
 func GetTrendingMovies(c echo.Context) error {
 	var status = http.StatusOK
 	pageNumber, err := getPageNumber(c.Param(variable.Page))
-	res, err := GetTrending(string(model.Movie), pageNumber)
+	res, err := GetTrending(model.Movie, pageNumber)
 	if err != nil {
 		log.Println("Error when getting Trending Movies")
 		status = http.StatusInternalServerError
@@ -66,7 +66,7 @@ func GetMovieGenres(c echo.Context) error {
 
 func getMovieGenresLocally() {
 	options := make(map[string]string)
-	options[variable.Language] = string(model.En)
+	options[variable.Language] = model.En
 	res, err := tmdbApi.GetMovieGenres(options)
 	if err != nil {
 		log.Println("Error when getting Movie genres")
@@ -84,6 +84,7 @@ func assignMovieGenre(result *model.Result) {
 		result.Results[index].GenreIDS = nil
 	}
 }
+
 func getMovieGenreFromId(id int) string {
 	for _, genre := range movieGenres.Genres {
 		if genre.ID == id {
@@ -91,4 +92,41 @@ func getMovieGenreFromId(id int) string {
 		}
 	}
 	return ""
+}
+
+func DiscoverMovies(c echo.Context) error {
+	var status = http.StatusOK
+	genres := c.QueryParam(variable.Genre)
+	providersIds := c.QueryParam(variable.ProvidersIds)
+	//keywords := c.QueryParam(variable.Keywords)
+	pageNumber, err := getPageNumber(c.QueryParam(variable.Page))
+	if err != nil {
+		log.Println("Error when parsing page number")
+		status = http.StatusExpectationFailed
+	}
+	uri := fmt.Sprintf("%vdiscover/movie%v&language=%v&watch_region=%v", variable.BaseUrl, getApiAuth(), model.En, model.CA)
+	if genres != "" {
+		uri = fmt.Sprintf("%v&%v=%v", uri, variable.Genre, genres)
+	}
+	if providersIds != "" {
+		uri = fmt.Sprintf("%v&%v=%v", uri, variable.ProvidersIds, providersIds)
+	}
+	//if keywords != "" {
+	//	uri = fmt.Sprintf("%v&%v=%v", uri, variable.Keywords, keywords)
+	//}
+	uri = fmt.Sprintf("%v&%v=%v", uri, variable.Page, pageNumber)
+
+	res, err := http.Get(uri)
+	if err != nil {
+		log.Println("Error during getting discover movies")
+		status = http.StatusExpectationFailed
+	}
+	var results = &model.Result{}
+
+	if err = json.NewDecoder(res.Body).Decode(&results); err != nil {
+		log.Println("Error during decoding of discover movies")
+		status = http.StatusExpectationFailed
+	}
+	assignMovieGenre(results)
+	return c.JSON(status, results)
 }

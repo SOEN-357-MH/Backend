@@ -66,9 +66,9 @@ func AssignVariables(config *model.Configuration) {
 func GetTrendingShows(c echo.Context) error {
 	var status = http.StatusOK
 	pageNumber, err := getPageNumber(c.Param(variable.Page))
-	res, err := GetTrending(string(model.Tv), pageNumber)
+	res, err := GetTrending(model.Tv, pageNumber)
 	if err != nil {
-		log.Fatal("Error when getting Trending Movies")
+		log.Println("Error when getting Trending Movies")
 		status = http.StatusExpectationFailed
 	}
 	assignShowGenre(res)
@@ -85,7 +85,7 @@ func getPageNumber(page string) (string, error) {
 
 func GetTrendingAll(c echo.Context) error {
 	pageNumber, err := getPageNumber(c.Param(variable.Page))
-	res, err := GetTrending(string(model.All), pageNumber)
+	res, err := GetTrending(model.All, pageNumber)
 	if err != nil {
 		log.Fatal("Error when getting Trending Movies")
 	}
@@ -132,10 +132,6 @@ func GetImageBaseUrl(c echo.Context) error {
 	return c.String(http.StatusOK, variable.ImageUrl)
 }
 
-//func GetChangeKeys(c echo.Context) error {
-//	return c.JSON(http.StatusOK, variable.ChangeKeys)
-//}
-
 func getApiAuth() string {
 	return "?api_key=" + variable.ApiKey
 }
@@ -145,9 +141,6 @@ func getSearchOptions(c echo.Context) (string, error) {
 	if err != nil {
 		log.Println("Error when parsing page number, page number set to default")
 	}
-	//options := make(map[string]string)
-	//options["language"] = string(model.En)
-	//options["page"] = pageNumber
 	options := fmt.Sprintf("&page=%v&language=%v&region=%v", pageNumber, model.En, "CA")
 	return options, err
 }
@@ -203,13 +196,49 @@ func GetShowGenres(c echo.Context) error {
 
 func getShowGenresLocally() {
 	options := make(map[string]string)
-	options[variable.Language] = string(model.En)
+	options[variable.Language] = model.En
 	if res, err := tmdbApi.GetTvGenres(options); err != nil {
 		log.Println("Error when getting TV Genres")
 		showsGenres = nil
 	} else {
 		showsGenres = res
 	}
+}
+
+func DiscoverShows(c echo.Context) error {
+	var status = http.StatusOK
+	genres := c.QueryParam(variable.Genre)
+	providersIds := c.QueryParam(variable.ProvidersIds)
+	//keywords := c.QueryParam(variable.Keywords)
+	pageNumber, err := getPageNumber(c.QueryParam(variable.Page))
+	if err != nil {
+		log.Println("Error when parsing page number")
+		status = http.StatusExpectationFailed
+	}
+	uri := fmt.Sprintf("%vdiscover/tv%v&language=%v&watch_region=%v", variable.BaseUrl, getApiAuth(), model.En, model.CA)
+	if genres != "" {
+		uri = fmt.Sprintf("%v&%v=%v", uri, variable.Genre, genres)
+	}
+	if providersIds != "" {
+		uri = fmt.Sprintf("%v&%v=%v", uri, variable.ProvidersIds, providersIds)
+	}
+	//if keywords != "" {
+	//	uri = fmt.Sprintf("%v&%v=%v", uri, variable.Keywords, keywords)
+	//}
+	uri = fmt.Sprintf("%v&%v=%v", uri, variable.Page, pageNumber)
+	res, err := http.Get(uri)
+	if err != nil {
+		log.Println("Error during getting discover shows")
+		status = http.StatusExpectationFailed
+	}
+	var results = &model.Result{}
+
+	if err = json.NewDecoder(res.Body).Decode(&results); err != nil {
+		log.Println("Error during decoding of discover shows")
+		status = http.StatusExpectationFailed
+	}
+	assignShowGenre(results)
+	return c.JSON(status, results)
 }
 
 func Test(c echo.Context) error {
