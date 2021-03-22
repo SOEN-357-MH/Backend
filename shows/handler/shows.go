@@ -36,6 +36,7 @@ func GetHealth(c echo.Context) error {
 }
 
 func setUpTmdbLib() {
+	for variable.ApiKey == "" {log.Println("Waiting as API Key is empty")}
 	config := tmdb.Config{
 		APIKey:   variable.ApiKey,
 		Proxies:  nil,
@@ -96,7 +97,7 @@ func GetTrendingAll(c echo.Context) error {
 }
 
 func GetTrending(mediaType string, pageNumber string) (*model.Result, error) {
-	url := variable.BaseUrl + "trending/" + mediaType + "/" + model.Day + getApiAuth() + "&pageNumber=" + pageNumber
+	url := variable.BaseUrl + "trending/" + mediaType + "/" + model.Day + getApiAuth() + "&page=" + pageNumber
 	res, err := http.Get(url)
 	if err != nil {
 		return nil, err
@@ -154,7 +155,11 @@ func SearchShows(c echo.Context) error {
 	if err != nil {
 		log.Println("Error during parsing of options, setting variables to default")
 	}
-	uri := fmt.Sprintf("%vsearch/tv%v&%v&query=%v", variable.BaseUrl, getApiAuth(), options, keywords)
+	pageNumber, err := getPageNumber(c.Param(variable.Page))
+	if err != nil {
+		log.Println("Error when getting page number for searching Shows")
+	}
+	uri := fmt.Sprintf("%vsearch/tv%v&%v&query=%v&%s=%v", variable.BaseUrl, getApiAuth(), options, keywords, variable.Page, pageNumber)
 	res, err := http.Get(uri)
 	var status = http.StatusOK
 	var result = &model.Result{}
