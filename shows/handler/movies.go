@@ -13,7 +13,8 @@ import (
 func SearchMovie(c echo.Context) error {
 	var status = http.StatusOK
 	keywords := c.Param(variable.Keywords)
-	pageNumber, err := getPageNumber(c.Param(variable.Page)); if err != nil {
+	pageNumber, err := getPageNumber(c.Param(variable.Page))
+	if err != nil {
 		log.Println("Error when getting page number for Searching movie")
 	}
 	options, err := getSearchOptions(c)
@@ -68,17 +69,25 @@ func GetMovieGenres(c echo.Context) error {
 }
 
 func getMovieGenresLocally() {
-	options := make(map[string]string)
-	options[variable.Language] = model.En
-	res, err := tmdbApi.GetMovieGenres(options)
-	if err != nil {
-		log.Println("Error when getting Movie genres")
-		movieGenres = nil
+	if tmdbApi != nil {
+		options := make(map[string]string)
+		options[variable.Language] = model.En
+		res, err := tmdbApi.GetMovieGenres(options)
+		if err != nil {
+			log.Println("Error when getting Movie genres")
+			movieGenres = nil
+		}
+		movieGenres = res
 	}
-	movieGenres = res
 }
 
 func assignMovieGenre(result *model.Result) {
+	if movieGenres == nil {
+		go getShowGenresLocally()
+		for movieGenres == nil {
+			// Waiting for the movie genres to be downloaded
+		}
+	}
 	for index, movie := range result.Results {
 		result.Results[index].Genres = []string{}
 		for _, genreId := range movie.GenreIDS {

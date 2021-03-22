@@ -36,7 +36,9 @@ func GetHealth(c echo.Context) error {
 }
 
 func setUpTmdbLib() {
-	for variable.ApiKey == "" {log.Println("Waiting as API Key is empty")}
+	for variable.ApiKey == "" {
+		log.Println("Waiting as API Key is empty")
+	}
 	config := tmdb.Config{
 		APIKey:   variable.ApiKey,
 		Proxies:  nil,
@@ -110,6 +112,12 @@ func GetTrending(mediaType string, pageNumber string) (*model.Result, error) {
 }
 
 func assignShowGenre(result *model.Result) {
+	if showsGenres == nil {
+		go getShowGenresLocally()
+		for showsGenres == nil {
+			// Wait for show genres to be downloaded
+		}
+	}
 	for index, movie := range result.Results {
 		result.Results[index].Genres = []string{}
 		for _, genreId := range movie.GenreIDS {
@@ -203,13 +211,15 @@ func GetShowGenres(c echo.Context) error {
 }
 
 func getShowGenresLocally() {
-	options := make(map[string]string)
-	options[variable.Language] = model.En
-	if res, err := tmdbApi.GetTvGenres(options); err != nil {
-		log.Println("Error when getting TV Genres")
-		showsGenres = nil
-	} else {
-		showsGenres = res
+	if tmdbApi != nil {
+		options := make(map[string]string)
+		options[variable.Language] = model.En
+		if res, err := tmdbApi.GetTvGenres(options); err != nil {
+			log.Println("Error when getting TV Genres")
+			showsGenres = nil
+		} else {
+			showsGenres = res
+		}
 	}
 }
 
