@@ -26,6 +26,7 @@ services:
          BASE_URL: "https://api.themoviedb.org/3/"
          API_KEY: "" # API_KEY to insert
      image: superdeano/mh-shows:0.0.1
+     image: superdeano/mh-shows:0.0.3
      container_name: mh-shows
      ports:
           - "8989:8989"
