@@ -28,6 +28,9 @@ func GetHealth(c echo.Context) error {
 	}
 
 	defer resp.Body.Close()
+	if variable.ApiKey == "" {
+		return c.String(http.StatusFound, "API Key is empty")
+	}
 
 	return c.String(http.StatusOK, "App seems reachable!")
 }
