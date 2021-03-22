@@ -15,6 +15,7 @@ import (
 var tmdbApi *tmdb.TMDb
 var movieGenres *tmdb.Genre
 var showsGenres *tmdb.Genre
+var config model.Configuration
 
 func GetHealth(c echo.Context) error {
 	configUrl := fmt.Sprintf("%sconfiguration/%s", variable.BaseUrl, getApiAuth())
@@ -53,7 +54,7 @@ func ConfigureSomeKeyVariables() {
 	if err != nil {
 		log.Fatal("Cannot reach External API Source")
 	}
-	var config model.Configuration
+
 	if err = json.NewDecoder(resp.Body).Decode(&config); err != nil {
 		log.Fatal("Error when decoding information about the Configurations")
 	}
@@ -261,4 +262,8 @@ func DiscoverShows(c echo.Context) error {
 
 func Test(c echo.Context) error {
 	return c.String(http.StatusOK, "Test")
+}
+
+func GetImageSizes(c echo.Context) error {
+	return c.JSON(http.StatusOK, config.Images.LogoSizes)
 }

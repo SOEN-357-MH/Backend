@@ -30,7 +30,7 @@ func setupServerRoutes(e *echo.Echo) {
 	e.GET(baseUrl+"health", handler.GetHealth)
 	e.GET(baseUrl+"baseImageUrl", handler.GetImageBaseUrl)
 	e.GET(baseUrl+"imageSize", handler.GetImageSize)
-	//e.GET(baseUrl+"changeKeys", handler.GetChangeKeys)
+	e.GET(baseUrl+"imageSizes", handler.GetImageSizes)
 
 	// Get Trending
 	e.GET(baseUrl+"trending/movie/:"+variable.Page, handler.GetTrendingMovies)
