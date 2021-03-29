@@ -12,6 +12,7 @@ type Media struct {
 	Adult            *bool             `json:"adult,omitempty"`
 	BackdropPath     *string           `json:"backdrop_path,omitempty"`
 	GenreIDS         []int64           `json:"genre_ids,omitempty"`
+	Genres         []string           `json:"genres,omitempty"`
 	//VoteCount        *int64            `json:"vote_count,omitempty"`
 	OriginalLanguage *OriginalLanguage `json:"original_language,omitempty"`
 	//OriginalTitle    *string           `json:"original_title,omitempty"`
@@ -31,21 +32,26 @@ type Media struct {
 
 type MediaType string
 const (
-	Movie MediaType = "movie"
-	Tv MediaType = "tv"
-	All MediaType = "all"
-	Person MediaType = "person"
+	Movie string = "movie"
+	Tv string = "tv"
+	All string = "all"
+	Person string = "person"
 )
 
 type TimeWindow string
 const (
-	Day = "day"
+	Day string = "day"
 	Week = "week"
 )
 
 type OriginalLanguage string
 const (
-	En OriginalLanguage = "en"
-	Fr OriginalLanguage = "fr"
-	Ja OriginalLanguage = "ja"
+	En string = "en"
+	Fr string = "fr"
+	Ja string = "ja"
+)
+
+type Region string
+const (
+	CA string = "CA"
 )

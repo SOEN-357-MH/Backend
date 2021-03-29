@@ -2,7 +2,9 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"github.com/labstack/echo/v4"
+	"github.com/ryanbradynd05/go-tmdb"
 	"log"
 	"net/http"
 	"shows/model"
@@ -10,8 +12,13 @@ import (
 	"strconv"
 )
 
+var tmdbApi *tmdb.TMDb
+var movieGenres *tmdb.Genre
+var showsGenres *tmdb.Genre
+var config model.Configuration
+
 func GetHealth(c echo.Context) error {
-	configUrl := variable.Base_url + "configuration" + getApiAuth()
+	configUrl := fmt.Sprintf("%sconfiguration/%s", variable.BaseUrl, getApiAuth())
 	resp, err := http.Get(configUrl)
 	if err != nil {
 		return c.String(http.StatusInternalServerError, "Cannot reach External API Source")
@@ -22,83 +29,78 @@ func GetHealth(c echo.Context) error {
 	}
 
 	defer resp.Body.Close()
+	if variable.ApiKey == "" {
+		return c.String(http.StatusFound, "API Key is empty")
+	}
 
 	return c.String(http.StatusOK, "App seems reachable!")
 }
 
+func setUpTmdbLib() {
+	for variable.ApiKey == "" {
+		log.Println("Waiting as API Key is empty")
+	}
+	config := tmdb.Config{
+		APIKey:   variable.ApiKey,
+		Proxies:  nil,
+		UseProxy: false,
+	}
+	tmdbApi = tmdb.Init(config)
+}
+
 func ConfigureSomeKeyVariables() {
-	configUrl := variable.Base_url + "configuration" + getApiAuth()
+	configUrl := variable.BaseUrl + "configuration" + getApiAuth()
 	resp, err := http.Get(configUrl)
 	if err != nil {
 		log.Fatal("Cannot reach External API Source")
 	}
-	var config model.Configuration
+
 	if err = json.NewDecoder(resp.Body).Decode(&config); err != nil {
 		log.Fatal("Error when decoding information about the Configurations")
 	}
 	go AssignVariables(&config)
+	go setUpTmdbLib()
+	go getMovieGenresLocally()
+	go getShowGenresLocally()
 	defer resp.Body.Close()
 }
 
 func AssignVariables(config *model.Configuration) {
-	variable.Image_url = *config.Images.BaseURL
-	variable.Image_size = config.Images.ProfileSizes[len(config.Images.ProfileSizes)-1]
-	variable.ChangeKeys = make(map[string]string)
-	for _, value := range config.ChangeKeys {
-		variable.ChangeKeys[value] = value
-	}
-}
-
-func GetTrendingMovies(c echo.Context) error {
-	pageNumber, err := strconv.Atoi(c.Param("pageNumber"))
-	if err != nil || pageNumber < 1 || pageNumber > 1000 {
-		pageNumber = 1
-	}
-	res, err := GetTrending(string(model.Movie), pageNumber)
-	if err != nil {
-		log.Fatal("Error when getting Trending Movies")
-	}
-	return c.JSON(http.StatusOK, res)
+	variable.ImageUrl = *config.Images.BaseURL
+	variable.ImageSize = config.Images.ProfileSizes[len(config.Images.ProfileSizes)-1]
 }
 
 func GetTrendingShows(c echo.Context) error {
-	pageNumber, err := strconv.Atoi(c.Param("pageNumber"))
-	if err != nil || pageNumber < 1 || pageNumber > 1000 {
-		pageNumber = 1
-	}
-	res, err := GetTrending(string(model.Tv), pageNumber)
+	var status = http.StatusOK
+	pageNumber, err := getPageNumber(c.Param(variable.Page))
+	res, err := GetTrending(model.Tv, pageNumber)
 	if err != nil {
-		log.Fatal("Error when getting Trending Movies")
+		log.Println("Error when getting Trending Movies")
+		status = http.StatusExpectationFailed
 	}
-	return c.JSON(http.StatusOK, res)
+	assignShowGenre(res)
+	return c.JSON(status, res)
 }
 
-func GetTrendingPersons(c echo.Context) error {
-	pageNumber, err := strconv.Atoi(c.Param("pageNumber"))
+func getPageNumber(page string) (string, error) {
+	pageNumber, err := strconv.Atoi(page)
 	if err != nil || pageNumber < 1 || pageNumber > 1000 {
 		pageNumber = 1
 	}
-	res, err := GetTrending(string(model.Person), pageNumber)
-	if err != nil {
-		log.Fatal("Error when getting Trending Movies")
-	}
-	return c.JSON(http.StatusOK, res)
+	return strconv.Itoa(pageNumber), err
 }
 
 func GetTrendingAll(c echo.Context) error {
-	pageNumber, err := strconv.Atoi(c.Param("pageNumber"))
-	if err != nil || pageNumber < 1 || pageNumber > 1000 {
-		pageNumber = 1
-	}
-	res, err := GetTrending(string(model.All), pageNumber)
+	pageNumber, err := getPageNumber(c.Param(variable.Page))
+	res, err := GetTrending(model.All, pageNumber)
 	if err != nil {
 		log.Fatal("Error when getting Trending Movies")
 	}
 	return c.JSON(http.StatusOK, res)
 }
 
-func GetTrending(mediaType string, pageNumber int) (*model.Result, error) {
-	url := variable.Base_url + "trending/" + mediaType + "/" + model.Day + getApiAuth() + "&pageNumber=" + string(rune(pageNumber))
+func GetTrending(mediaType string, pageNumber string) (*model.Result, error) {
+	url := variable.BaseUrl + "trending/" + mediaType + "/" + model.Day + getApiAuth() + "&page=" + pageNumber
 	res, err := http.Get(url)
 	if err != nil {
 		return nil, err
@@ -110,22 +112,158 @@ func GetTrending(mediaType string, pageNumber int) (*model.Result, error) {
 	return results, nil
 }
 
+func assignShowGenre(result *model.Result) {
+	if showsGenres == nil {
+		go getShowGenresLocally()
+		for showsGenres == nil {
+			// Wait for show genres to be downloaded
+		}
+	}
+	for index, movie := range result.Results {
+		result.Results[index].Genres = []string{}
+		for _, genreId := range movie.GenreIDS {
+			result.Results[index].Genres = append(result.Results[index].Genres, getShowGenreFromId(int(genreId)))
+		}
+		result.Results[index].GenreIDS = nil
+	}
+}
+
+func getShowGenreFromId(id int) string {
+	for _, genre := range showsGenres.Genres {
+		if genre.ID == id {
+			return genre.Name
+		}
+	}
+	return ""
+}
+
 func GetImageSize(c echo.Context) error {
-	return c.String(http.StatusOK, variable.Image_size)
+	return c.String(http.StatusOK, variable.ImageSize)
 }
 
 func GetImageBaseUrl(c echo.Context) error {
-	return c.String(http.StatusOK, variable.Image_url)
-}
-
-func GetChangeKeys(c echo.Context) error {
-	return c.JSON(http.StatusOK, variable.ChangeKeys)
+	return c.String(http.StatusOK, variable.ImageUrl)
 }
 
 func getApiAuth() string {
-	return "?api_key=" + variable.Api_key
+	return "?api_key=" + variable.ApiKey
+}
+
+func getSearchOptions(c echo.Context) (string, error) {
+	pageNumber, err := getPageNumber(c.Param(variable.Page))
+	if err != nil {
+		log.Println("Error when parsing page number, page number set to default")
+	}
+	options := fmt.Sprintf("&page=%v&language=%v&region=%v", pageNumber, model.En, "CA")
+	return options, err
+}
+
+func SearchShows(c echo.Context) error {
+	keywords := c.Param(variable.Keywords)
+	options, err := getSearchOptions(c)
+	if err != nil {
+		log.Println("Error during parsing of options, setting variables to default")
+	}
+	pageNumber, err := getPageNumber(c.Param(variable.Page))
+	if err != nil {
+		log.Println("Error when getting page number for searching Shows")
+	}
+	uri := fmt.Sprintf("%vsearch/tv%v&%v&query=%v&%s=%v", variable.BaseUrl, getApiAuth(), options, keywords, variable.Page, pageNumber)
+	res, err := http.Get(uri)
+	var status = http.StatusOK
+	var result = &model.Result{}
+	if err = json.NewDecoder(res.Body).Decode(&result); err != nil {
+		log.Println("Error when decoding result from searching for Shows")
+		status = http.StatusExpectationFailed
+	}
+	//res, err := tmdbApi.SearchTv(keywords, options)
+	if err != nil {
+		log.Println("Error when searching for Shows")
+		status = http.StatusExpectationFailed
+	}
+	assignShowGenre(result)
+	return c.JSON(status, result)
+
+}
+
+func GetShowWatchProvider(c echo.Context) error {
+	showId := c.Param(variable.Id)
+	url := fmt.Sprintf("%vtv/%v/watch/providers%s", variable.BaseUrl, showId, getApiAuth())
+	res, err := http.Get(url)
+	if err != nil {
+		log.Println("Error when searching for Show Providers")
+	}
+	var providers = &model.WatchProvider{}
+	if err := json.NewDecoder(res.Body).Decode(&providers); err != nil {
+		log.Println("Error when decoding Show Providers")
+		return c.JSON(http.StatusExpectationFailed, providers)
+	}
+	return c.JSON(http.StatusOK, providers)
+}
+
+func GetShowGenres(c echo.Context) error {
+	if showsGenres == nil {
+		log.Println("Show Genres is nill")
+		go getShowGenresLocally()
+		return c.JSON(http.StatusExpectationFailed, nil)
+	} else {
+		return c.JSON(http.StatusOK, showsGenres)
+	}
+}
+
+func getShowGenresLocally() {
+	if tmdbApi != nil {
+		options := make(map[string]string)
+		options[variable.Language] = model.En
+		if res, err := tmdbApi.GetTvGenres(options); err != nil {
+			log.Println("Error when getting TV Genres")
+			showsGenres = nil
+		} else {
+			showsGenres = res
+		}
+	}
+}
+
+func DiscoverShows(c echo.Context) error {
+	var status = http.StatusOK
+	genres := c.QueryParam(variable.Genre)
+	providersIds := c.QueryParam(variable.ProvidersIds)
+	//keywords := c.QueryParam(variable.Keywords)
+	pageNumber, err := getPageNumber(c.QueryParam(variable.Page))
+	if err != nil {
+		log.Println("Error when parsing page number")
+		status = http.StatusExpectationFailed
+	}
+	uri := fmt.Sprintf("%vdiscover/tv%v&language=%v&watch_region=%v", variable.BaseUrl, getApiAuth(), model.En, model.CA)
+	if genres != "" {
+		uri = fmt.Sprintf("%v&%v=%v", uri, variable.Genre, genres)
+	}
+	if providersIds != "" {
+		uri = fmt.Sprintf("%v&%v=%v", uri, variable.ProvidersIds, providersIds)
+	}
+	//if keywords != "" {
+	//	uri = fmt.Sprintf("%v&%v=%v", uri, variable.Keywords, keywords)
+	//}
+	uri = fmt.Sprintf("%v&%v=%v", uri, variable.Page, pageNumber)
+	res, err := http.Get(uri)
+	if err != nil {
+		log.Println("Error during getting discover shows")
+		status = http.StatusExpectationFailed
+	}
+	var results = &model.Result{}
+
+	if err = json.NewDecoder(res.Body).Decode(&results); err != nil {
+		log.Println("Error during decoding of discover shows")
+		status = http.StatusExpectationFailed
+	}
+	assignShowGenre(results)
+	return c.JSON(status, results)
 }
 
 func Test(c echo.Context) error {
 	return c.String(http.StatusOK, "Test")
+}
+
+func GetImageSizes(c echo.Context) error {
+	return c.JSON(http.StatusOK, config.Images.LogoSizes)
 }

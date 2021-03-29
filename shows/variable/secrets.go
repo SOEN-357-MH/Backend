@@ -1,9 +1,15 @@
 package variable
 
 var (
-	Api_key    string
-	Base_url   string
-	Image_url  string
-	Image_size string
-	ChangeKeys map[string]string
+	ApiKey       string
+	BaseUrl      string
+	ImageUrl     string
+	ImageSize    string
+	Keywords     = "with_keywords"
+	Page         = "page"
+	Genre        = "with_genres"
+	ProvidersIds = "with_watch_providers"
+	Id           = "id"
+	Language     = "language"
+	//ChangeKeys map[string]string
 )

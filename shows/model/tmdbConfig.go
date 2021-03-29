@@ -14,3 +14,4 @@ type Images struct {
 	ProfileSizes  []string `json:"profile_sizes,omitempty"`
 	StillSizes    []string `json:"still_sizes,omitempty"`
 }
+
