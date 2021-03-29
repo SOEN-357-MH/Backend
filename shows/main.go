@@ -32,6 +32,9 @@ func setupServerRoutes(e *echo.Echo) {
 	e.GET(baseUrl+"imageSize", handler.GetImageSize)
 	e.GET(baseUrl+"imageSizes", handler.GetImageSizes)
 
+	e.POST(fmt.Sprintf("%vshows",baseUrl), handler.GetShows)
+	e.POST(fmt.Sprintf("%vmovies",baseUrl), handler.GetMovies)
+
 	// Get Trending
 	e.GET(baseUrl+"trending/movie/:"+variable.Page, handler.GetTrendingMovies)
 	e.GET(baseUrl+"trending/show/:"+variable.Page, handler.GetTrendingShows)

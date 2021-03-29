@@ -16,6 +16,8 @@ var tmdbApi *tmdb.TMDb
 var movieGenres *tmdb.Genre
 var showsGenres *tmdb.Genre
 var config model.Configuration
+var Movie = 0
+var Show = 1
 
 func GetHealth(c echo.Context) error {
 	configUrl := fmt.Sprintf("%sconfiguration/%s", variable.BaseUrl, getApiAuth())
@@ -266,4 +268,46 @@ func Test(c echo.Context) error {
 
 func GetImageSizes(c echo.Context) error {
 	return c.JSON(http.StatusOK, config.Images.LogoSizes)
+}
+
+func GetShows(c echo.Context) error {
+
+	showIds := &[]int{}
+	if err := c.Bind(&showIds); err != nil {
+		log.Println(err.Error())
+	}
+	if len(*showIds) == 0 {
+		return nil
+	}
+	var shows model.Result
+	shows.Results = make([]model.Media, 0)
+	for _, id := range *showIds {
+		shows.Results = append(shows.Results, getMedia(Movie, id))
+	}
+	return c.JSON(http.StatusOK, shows)
+}
+
+func getMedia(mediaType int, id int) model.Media {
+	var url string
+	if mediaType == Movie {
+		url = fmt.Sprintf("%vmovie/%v%v", variable.BaseUrl, id, getApiAuth())
+	} else {
+		url = fmt.Sprintf("%stv/%v%v", variable.BaseUrl, id, getApiAuth())
+	}
+	reqRes, err := http.Get(url)
+	if err != nil {
+		log.Println("Error when getting movie detail")
+	}
+	var result = &model.MediaSearched{}
+	if err := json.NewDecoder(reqRes.Body).Decode(result); err != nil {
+		log.Println("Error when decoding movie detail")
+	}
+	return convertToMedia(*result)
+}
+func convertToMedia(res model.MediaSearched) model.Media {
+	var media = model.Media{ReleaseDate: res.ReleaseDate, Adult: res.Adult, BackdropPath: res.BackdropPath, OriginalLanguage: res.OriginalLanguage, PosterPath: res.PosterPath, Title: res.Title, ID: res.ID, Overview: res.Overview, OriginCountry: res.OriginCountry, Name: res.Name, FirstAirDate: res.FirstAirDate}
+	for _, genre := range res.GenresSearched {
+		media.Genres = append(media.Genres, genre.Name)
+	}
+	return media
 }

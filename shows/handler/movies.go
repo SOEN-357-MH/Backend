@@ -142,3 +142,17 @@ func DiscoverMovies(c echo.Context) error {
 	assignMovieGenre(results)
 	return c.JSON(status, results)
 }
+
+func GetMovies(c echo.Context) error {
+	var movieIds []int
+	if err := c.Bind(&movieIds); err != nil {
+		log.Println(err.Error())
+	}
+	var movies model.Result
+	movies.Results = make([]model.Media, 0)
+	for _, id := range movieIds {
+		movies.Results = append(movies.Results, getMedia(Movie, id))
+	}
+	return c.JSON(http.StatusOK, movies)
+
+}
