@@ -11,6 +11,7 @@ import (
 	"shows/model"
 	"shows/variable"
 	"strconv"
+	"strings"
 )
 
 var tmdbApi *tmdb.TMDb
@@ -231,7 +232,6 @@ func DiscoverShows(c echo.Context) error {
 	var status = http.StatusOK
 	genres := c.QueryParam(variable.Genre)
 	providersIds := c.QueryParam(variable.ProvidersIds)
-	//keywords := c.QueryParam(variable.Keywords)
 	pageNumber, err := getPageNumber(c.QueryParam(variable.Page))
 	if err != nil {
 		log.Println("Error when parsing page number")
@@ -241,12 +241,32 @@ func DiscoverShows(c echo.Context) error {
 	if genres != "" {
 		uri = fmt.Sprintf("%v&%v=%v", uri, variable.Genre, genres)
 	}
+	//var providers []string
 	if providersIds != "" {
-		uri = fmt.Sprintf("%v&%v=%v", uri, variable.ProvidersIds, providersIds)
+		//uri = fmt.Sprintf("%v&%v=%v", uri, variable.ProvidersIds, providersIds)
+		providers := strings.Split(providersIds, ",")
+		var totalResults = &model.Result{}
+		for _, provider := range providers {
+			var results = &model.Result{}
+			uri2 := fmt.Sprintf("%v&%v=%v", uri, variable.ProvidersIds, provider)
+			uri2 = fmt.Sprintf("%v&%v=%v", uri2, variable.Page, pageNumber)
+			res, err := http.Get(uri2)
+			if err != nil {
+				log.Println("Error during getting discover shows")
+				status = http.StatusExpectationFailed
+			}
+			if err = json.NewDecoder(res.Body).Decode(&results); err != nil {
+				log.Println("Error during decoding of discover shows")
+				status = http.StatusExpectationFailed
+			}
+			assignShowGenre(results)
+			totalResults.Results = append(totalResults.Results, results.Results...)
+		}
+		totalResults.TotalResults = new(int64)
+		*totalResults.TotalResults = int64(len(totalResults.Results))
+		return c.JSON(status, totalResults)
 	}
-	//if keywords != "" {
-	//	uri = fmt.Sprintf("%v&%v=%v", uri, variable.Keywords, keywords)
-	//}
+
 	uri = fmt.Sprintf("%v&%v=%v", uri, variable.Page, pageNumber)
 	res, err := http.Get(uri)
 	if err != nil {
