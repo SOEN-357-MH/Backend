@@ -8,6 +8,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx"
+	"log"
+	"net/http"
 )
 
 var (
@@ -18,6 +20,12 @@ var (
 	AccountPassword   = "password"
 	AccountLastName   = "lastname"
 	AccountFirstName  = "firstname"
+	ShowId            = "showId"
+	MovieId           = "movieId"
+	Movie             = 1
+	Show              = 0
+	movieWatchList    = "movie_watchlist"
+	showWatchList     = "show_watchlist"
 	Fail              = -1
 	Success           = 1
 )
@@ -99,4 +107,32 @@ func CheckUsernameOrEmailInUser(username string, email string) bool {
 		return false
 	}
 	return user.Username != "" || user.Email != ""
+}
+
+func AddShowToWatchList(username string, showId int) (int, string) {
+	return addMediaToWatchlist(username, Show, showId)
+}
+
+func AddMovieToWatchlist(username string, movieId int) (int, string) {
+	return addMediaToWatchlist(username, Movie, movieId)
+}
+
+func addMediaToWatchlist(username string, mediaType int, id int) (int, string) {
+	match := bson.M{AccountUsername: username}
+	var insert bson.M
+	switch mediaType {
+	case Movie:
+		insert = bson.M{"$addToSet": bson.M{movieWatchList: id}}
+	default:
+		insert = bson.M{"$addToSet": bson.M{showWatchList: id}}
+	}
+	res, err := Db.UpdateOne(context.TODO(), match, insert)
+	if err != nil {
+		log.Printf(err.Error())
+		return http.StatusExpectationFailed, err.Error()
+	}
+	if res.ModifiedCount != 1 {
+		return http.StatusExpectationFailed, "Did not add"
+	}
+	return http.StatusOK, "Added!"
 }
