@@ -32,12 +32,12 @@ func setUpRoutes(e *echo.Echo) {
 	e.GET("/account/user/:"+Dao.AccountUsername, Handler.GetUser)
 
 	//WatchLists
-	e.GET(fmt.Sprintf("/account/user/:%s/watchlist/show/", Dao.AccountUsername), Handler.GetShowWatchlist)
-	e.GET(fmt.Sprintf("/account/user/:%v/watchlist/movie/", Dao.AccountUsername), Handler.GetMovieWatchlist)
-	e.PUT(fmt.Sprintf("/account/user/:%v/watchlist/show/:%s", Dao.AccountUsername, Dao.ShowId), Handler.AddShowToWatchList)
-	e.PUT(fmt.Sprintf("/account/user/:%v/watchlist/movie/:%s", Dao.AccountUsername, Dao.MovieId), Handler.AddMovieToWatchList)
-	e.DELETE(fmt.Sprintf("/account/user/:%v/watchlist/show/:%s", Dao.AccountUsername, Dao.ShowId), Handler.RemoveShowFromWatchList)
-	e.DELETE(fmt.Sprintf("/account/user/:%v/watchlist/movie/:%s", Dao.AccountUsername, Dao.MovieId), Handler.RemoveMovieFromWatchList)
+	e.GET(fmt.Sprintf("/account/user/:%s/watchlist/show", Dao.AccountUsername), Handler.GetShowWatchlist)
+	e.GET(fmt.Sprintf("/account/user/:%v/watchlist/movie", Dao.AccountUsername), Handler.GetMovieWatchlist)
+	e.PUT(fmt.Sprintf("/account/user/:%v/watchlist/show/:%s", Dao.AccountUsername, Dao.ShowId), Handler.AddShowToWatchlist)
+	e.PUT(fmt.Sprintf("/account/user/:%v/watchlist/movie/:%s", Dao.AccountUsername, Dao.MovieId), Handler.AddMovieToWatchlist)
+	e.DELETE(fmt.Sprintf("/account/user/:%v/watchlist/show/:%s", Dao.AccountUsername, Dao.ShowId), Handler.RemoveShowFromWatchlist)
+	e.DELETE(fmt.Sprintf("/account/user/:%v/watchlist/movie/:%s", Dao.AccountUsername, Dao.MovieId), Handler.RemoveMovieFromWatchlist)
 }
 
 func setUpDbConnection() {

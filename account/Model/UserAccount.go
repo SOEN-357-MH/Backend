@@ -6,4 +6,7 @@ type Account struct {
 	LastName string `json:"lastName"`
 	Email string `json:"email"`
 	Username string `json:"username"`
+	MovieWatchlist []int `json:"movieWatchlist,omitempty" bson:"movie_watchlist"`
+	ShowWatchlist []int `json:"showWatchlist,omitempty" bson:"show_watchlist"`
+
 }
