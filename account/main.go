@@ -7,7 +7,6 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/superDeano/account/Dao"
 	"github.com/superDeano/account/Handler"
-	//"github.com/go-bongo/bongo"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
@@ -15,12 +14,13 @@ import (
 )
 
 func main() {
-	fmt.Println("Starting Account MicroService")
+	fmt.Println("The Account MicroService")
 	e := echo.New()
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 	setUpDbConnection()
 	setUpRoutes(e)
+	Handler.ShowsMsBaseUrl = os.Getenv("SHOWS_URL")
 	e.Logger.Fatal(e.Start(":8080"))
 }
 

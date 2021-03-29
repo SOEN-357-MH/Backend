@@ -1,12 +1,18 @@
 package Handler
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
 	"github.com/labstack/echo/v4"
 	"github.com/superDeano/account/Dao"
 	"github.com/superDeano/account/Model"
+	"log"
 	"net/http"
 	"strconv"
 )
+
+var ShowsMsBaseUrl string
 
 func AddAccount(c echo.Context) error {
 	user := &Model.Account{}
@@ -109,11 +115,35 @@ func RemoveMovieFromWatchlist(c echo.Context) error {
 func GetShowWatchlist(c echo.Context) error {
 	user := c.Param(Dao.AccountUsername)
 	status, res := Dao.GetShowWatchlist(user)
+	if ShowsMsBaseUrl != "" {
+		return c.JSON(status, getMediaDetails(Dao.Show, res))
+	}
 	return c.JSON(status, res)
 }
 
 func GetMovieWatchlist(c echo.Context) error {
 	user := c.Param(Dao.AccountUsername)
 	status, res := Dao.GetMovieWatchlist(user)
+	if ShowsMsBaseUrl != "" {
+		return c.JSON(status, getMediaDetails(Dao.Movie, res))
+	}
 	return c.JSON(status, res)
+}
+
+func getMediaDetails(mediaType int, mediaIds []int) Model.Result {
+	var url string
+	if mediaType == Dao.Movie {
+		url = fmt.Sprintf("%vmedia/movies", ShowsMsBaseUrl)
+	} else {
+		url = fmt.Sprintf("%vmedia/shows", ShowsMsBaseUrl)
+	}
+	b, err := json.Marshal(&mediaIds)
+	if err != nil {
+		log.Panicln("Could not transform mediaIds to json marshall")
+	}
+	body := bytes.NewBuffer(b)
+	res, err := http.Post(url, "application/json", body)
+	var results = Model.Result{}
+	json.NewDecoder(res.Body).Decode(&results)
+	return results
 }
