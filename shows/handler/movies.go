@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"shows/model"
 	"shows/variable"
+	"strings"
 )
 
 func SearchMovie(c echo.Context) error {
