@@ -6,19 +6,20 @@ import (
 	"github.com/labstack/echo/v4"
 	"log"
 	"net/http"
+	"net/url"
 	"shows/model"
 	"shows/variable"
 )
 
 func SearchMovie(c echo.Context) error {
 	var status = http.StatusOK
-	keywords := c.Param(variable.Keywords)
+	keywords := url.QueryEscape(c.Param(variable.Keywords))
 	pageNumber, err := getPageNumber(c.Param(variable.Page))
 	if err != nil {
 		log.Println("Error when getting page number for Searching movie")
 	}
 	options, err := getSearchOptions(c)
-	uri := fmt.Sprintf("%vsearch/movie%v&%v&query=%v&%s=%v", variable.BaseUrl, getApiAuth(), options, keywords, variable.Page, pageNumber)
+	uri := fmt.Sprintf("%vsearch/movie%v%v&query=%s&%s=%v", variable.BaseUrl, getApiAuth(), options, keywords, variable.Page, pageNumber)
 	resp, err := http.Get(uri)
 	if err != nil {
 		log.Println("Error when trying to search for movies")

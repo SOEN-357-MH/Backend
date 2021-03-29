@@ -7,6 +7,7 @@ import (
 	"github.com/ryanbradynd05/go-tmdb"
 	"log"
 	"net/http"
+	"net/url"
 	"shows/model"
 	"shows/variable"
 	"strconv"
@@ -161,7 +162,7 @@ func getSearchOptions(c echo.Context) (string, error) {
 }
 
 func SearchShows(c echo.Context) error {
-	keywords := c.Param(variable.Keywords)
+	keywords := url.QueryEscape(c.Param(variable.Keywords))
 	options, err := getSearchOptions(c)
 	if err != nil {
 		log.Println("Error during parsing of options, setting variables to default")
@@ -170,7 +171,7 @@ func SearchShows(c echo.Context) error {
 	if err != nil {
 		log.Println("Error when getting page number for searching Shows")
 	}
-	uri := fmt.Sprintf("%vsearch/tv%v&%v&query=%v&%s=%v", variable.BaseUrl, getApiAuth(), options, keywords, variable.Page, pageNumber)
+	uri := fmt.Sprintf("%vsearch/tv%v%v&query=%v&%s=%v", variable.BaseUrl, getApiAuth(), options, keywords, variable.Page, pageNumber)
 	res, err := http.Get(uri)
 	var status = http.StatusOK
 	var result = &model.Result{}
@@ -288,13 +289,13 @@ func GetShows(c echo.Context) error {
 }
 
 func getMedia(mediaType int, id int) model.Media {
-	var url string
+	var uri string
 	if mediaType == Movie {
-		url = fmt.Sprintf("%vmovie/%v%v", variable.BaseUrl, id, getApiAuth())
+		uri = fmt.Sprintf("%vmovie/%v%v", variable.BaseUrl, id, getApiAuth())
 	} else {
-		url = fmt.Sprintf("%stv/%v%v", variable.BaseUrl, id, getApiAuth())
+		uri = fmt.Sprintf("%stv/%v%v", variable.BaseUrl, id, getApiAuth())
 	}
-	reqRes, err := http.Get(url)
+	reqRes, err := http.Get(uri)
 	if err != nil {
 		log.Println("Error when getting movie detail")
 	}

@@ -8,11 +8,11 @@ type Result struct {
 }
 
 type Media struct {
-	ReleaseDate    *string       `json:"release_date,omitempty"`
-	Adult          *bool         `json:"adult,omitempty"`
-	BackdropPath   *string       `json:"backdrop_path,omitempty"`
-	GenreIDS       []int64       `json:"genre_ids,omitempty"`
-	Genres         []string      `json:"genres,omitempty"`
+	ReleaseDate  *string  `json:"release_date,omitempty"`
+	Adult        *bool    `json:"adult,omitempty"`
+	BackdropPath *string  `json:"backdrop_path,omitempty"`
+	GenreIDS     []int64  `json:"genre_ids,omitempty"`
+	Genres       []string `json:"genres,omitempty"`
 	//VoteCount        *int64            `json:"vote_count,omitempty"`
 	OriginalLanguage *OriginalLanguage `json:"original_language,omitempty"`
 	//OriginalTitle    *string           `json:"original_title,omitempty"`
@@ -51,10 +51,12 @@ type MediaSearched struct {
 	Name          *string  `json:"name,omitempty"`
 	FirstAirDate  *string  `json:"first_air_date,omitempty"`
 }
+
 type EasierGenre struct {
 	Id   int    `json:"id,omitempty"`
 	Name string `json:"name,omitempty"`
 }
+
 type MediaType string
 
 const (
