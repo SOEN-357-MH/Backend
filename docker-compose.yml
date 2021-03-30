@@ -13,9 +13,11 @@ services:
      environment:
          DB_URL: mongodb://root:root@mongodb-dev:27017
          DB: test
-     image: superdeano/mh-account:0.0.3
+         SHOWS_URL: http://shows-ms:8989/
+     image: superdeano/mh-account:0.0.4
      depends_on:
       - mongodb-dev
+      - shows-ms
      container_name: mh-account
      ports:
       - "8080:8080"
@@ -25,8 +27,7 @@ services:
          SERVER_PORT: ":8989"
          BASE_URL: "https://api.themoviedb.org/3/"
          API_KEY: "" # API_KEY to insert
-     image: superdeano/mh-shows:0.0.1
-     image: superdeano/mh-shows:0.0.3
+     image: superdeano/mh-shows:0.0.5
      container_name: mh-shows
      ports:
           - "8989:8989"
