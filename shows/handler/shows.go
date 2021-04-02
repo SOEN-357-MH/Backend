@@ -7,15 +7,19 @@ import (
 	"github.com/ryanbradynd05/go-tmdb"
 	"log"
 	"net/http"
+	"net/url"
 	"shows/model"
 	"shows/variable"
 	"strconv"
+	"strings"
 )
 
 var tmdbApi *tmdb.TMDb
 var movieGenres *tmdb.Genre
 var showsGenres *tmdb.Genre
 var config model.Configuration
+var Movie = 0
+var Show = 1
 
 func GetHealth(c echo.Context) error {
 	configUrl := fmt.Sprintf("%sconfiguration/%s", variable.BaseUrl, getApiAuth())
@@ -159,7 +163,7 @@ func getSearchOptions(c echo.Context) (string, error) {
 }
 
 func SearchShows(c echo.Context) error {
-	keywords := c.Param(variable.Keywords)
+	keywords := url.QueryEscape(c.Param(variable.Keywords))
 	options, err := getSearchOptions(c)
 	if err != nil {
 		log.Println("Error during parsing of options, setting variables to default")
@@ -168,7 +172,7 @@ func SearchShows(c echo.Context) error {
 	if err != nil {
 		log.Println("Error when getting page number for searching Shows")
 	}
-	uri := fmt.Sprintf("%vsearch/tv%v&%v&query=%v&%s=%v", variable.BaseUrl, getApiAuth(), options, keywords, variable.Page, pageNumber)
+	uri := fmt.Sprintf("%vsearch/tv%v%v&query=%v&%s=%v", variable.BaseUrl, getApiAuth(), options, keywords, variable.Page, pageNumber)
 	res, err := http.Get(uri)
 	var status = http.StatusOK
 	var result = &model.Result{}
@@ -228,7 +232,6 @@ func DiscoverShows(c echo.Context) error {
 	var status = http.StatusOK
 	genres := c.QueryParam(variable.Genre)
 	providersIds := c.QueryParam(variable.ProvidersIds)
-	//keywords := c.QueryParam(variable.Keywords)
 	pageNumber, err := getPageNumber(c.QueryParam(variable.Page))
 	if err != nil {
 		log.Println("Error when parsing page number")
@@ -238,12 +241,32 @@ func DiscoverShows(c echo.Context) error {
 	if genres != "" {
 		uri = fmt.Sprintf("%v&%v=%v", uri, variable.Genre, genres)
 	}
+	//var providers []string
 	if providersIds != "" {
-		uri = fmt.Sprintf("%v&%v=%v", uri, variable.ProvidersIds, providersIds)
+		//uri = fmt.Sprintf("%v&%v=%v", uri, variable.ProvidersIds, providersIds)
+		providers := strings.Split(providersIds, ",")
+		var totalResults = &model.Result{}
+		for _, provider := range providers {
+			var results = &model.Result{}
+			uri2 := fmt.Sprintf("%v&%v=%v", uri, variable.ProvidersIds, provider)
+			uri2 = fmt.Sprintf("%v&%v=%v", uri2, variable.Page, pageNumber)
+			res, err := http.Get(uri2)
+			if err != nil {
+				log.Println("Error during getting discover shows")
+				status = http.StatusExpectationFailed
+			}
+			if err = json.NewDecoder(res.Body).Decode(&results); err != nil {
+				log.Println("Error during decoding of discover shows")
+				status = http.StatusExpectationFailed
+			}
+			assignShowGenre(results)
+			totalResults.Results = append(totalResults.Results, results.Results...)
+		}
+		totalResults.TotalResults = new(int64)
+		*totalResults.TotalResults = int64(len(totalResults.Results))
+		return c.JSON(status, totalResults)
 	}
-	//if keywords != "" {
-	//	uri = fmt.Sprintf("%v&%v=%v", uri, variable.Keywords, keywords)
-	//}
+
 	uri = fmt.Sprintf("%v&%v=%v", uri, variable.Page, pageNumber)
 	res, err := http.Get(uri)
 	if err != nil {
@@ -266,4 +289,46 @@ func Test(c echo.Context) error {
 
 func GetImageSizes(c echo.Context) error {
 	return c.JSON(http.StatusOK, config.Images.LogoSizes)
+}
+
+func GetShows(c echo.Context) error {
+
+	showIds := &[]int{}
+	if err := c.Bind(&showIds); err != nil {
+		log.Println(err.Error())
+	}
+	if len(*showIds) == 0 {
+		return nil
+	}
+	var shows model.Result
+	shows.Results = make([]model.Media, 0)
+	for _, id := range *showIds {
+		shows.Results = append(shows.Results, getMedia(Movie, id))
+	}
+	return c.JSON(http.StatusOK, shows)
+}
+
+func getMedia(mediaType int, id int) model.Media {
+	var uri string
+	if mediaType == Movie {
+		uri = fmt.Sprintf("%vmovie/%v%v", variable.BaseUrl, id, getApiAuth())
+	} else {
+		uri = fmt.Sprintf("%stv/%v%v", variable.BaseUrl, id, getApiAuth())
+	}
+	reqRes, err := http.Get(uri)
+	if err != nil {
+		log.Println("Error when getting movie detail")
+	}
+	var result = &model.MediaSearched{}
+	if err := json.NewDecoder(reqRes.Body).Decode(result); err != nil {
+		log.Println("Error when decoding movie detail")
+	}
+	return convertToMedia(*result)
+}
+func convertToMedia(res model.MediaSearched) model.Media {
+	var media = model.Media{ReleaseDate: res.ReleaseDate, Adult: res.Adult, BackdropPath: res.BackdropPath, OriginalLanguage: res.OriginalLanguage, PosterPath: res.PosterPath, Title: res.Title, ID: res.ID, Overview: res.Overview, OriginCountry: res.OriginCountry, Name: res.Name, FirstAirDate: res.FirstAirDate}
+	for _, genre := range res.GenresSearched {
+		media.Genres = append(media.Genres, genre.Name)
+	}
+	return media
 }

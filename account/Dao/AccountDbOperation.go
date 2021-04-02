@@ -8,6 +8,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/bsonx"
+	"log"
+	"net/http"
 )
 
 var (
@@ -18,6 +20,12 @@ var (
 	AccountPassword   = "password"
 	AccountLastName   = "lastname"
 	AccountFirstName  = "firstname"
+	ShowId            = "showId"
+	MovieId           = "movieId"
+	Movie             = 1
+	Show              = 0
+	movieWatchList    = "movie_watchlist"
+	showWatchList     = "show_watchlist"
 	Fail              = -1
 	Success           = 1
 )
@@ -62,7 +70,7 @@ func AuthenticateUser(user *Model.Account) bool {
 	return false
 }
 
-func UsernameExist(username string) bool {
+func UsernameExistsEh(username string) bool {
 
 	projection := bsonx.Doc{{AccountUsername, bsonx.Int32(1)}}
 	result := &Model.Account{}
@@ -99,4 +107,106 @@ func CheckUsernameOrEmailInUser(username string, email string) bool {
 		return false
 	}
 	return user.Username != "" || user.Email != ""
+}
+
+func AddShowToWatchList(username string, showId int) (int, string) {
+	return addMediaToWatchlist(username, Show, showId)
+}
+
+func AddMovieToWatchlist(username string, movieId int) (int, string) {
+	return addMediaToWatchlist(username, Movie, movieId)
+}
+
+func addMediaToWatchlist(username string, mediaType int, id int) (int, string) {
+	match := bson.M{AccountUsername: username}
+	var insert bson.M
+	switch mediaType {
+	case Movie:
+		insert = bson.M{"$addToSet": bson.M{movieWatchList: id}}
+	default:
+		insert = bson.M{"$addToSet": bson.M{showWatchList: id}}
+	}
+	res, err := Db.UpdateOne(context.TODO(), match, insert)
+	if err != nil {
+		log.Printf(err.Error())
+		return http.StatusExpectationFailed, err.Error()
+	}
+	if res.ModifiedCount != 1 {
+		return http.StatusExpectationFailed, "Did not add"
+	}
+	return http.StatusOK, "Added!"
+}
+
+func GetShowWatchlist(username string) (int, []int) {
+	if UsernameExistsEh(username) {
+		return http.StatusOK, getWatchlist(username, Show)
+	} else {
+		return http.StatusNotFound, nil
+	}
+}
+
+func GetMovieWatchlist(username string) (int, []int) {
+	if UsernameExistsEh(username) {
+		return http.StatusOK, getWatchlist(username, Movie)
+	} else {
+		return http.StatusNotFound, nil
+	}
+}
+
+func getWatchlist(username string, mediaType int) []int {
+	var projection bson.M
+	var watchlist Model.Account
+	switch mediaType {
+	case Movie:
+		projection = bson.M{movieWatchList: 1, "_id": 0}
+		err := Db.FindOne(context.TODO(), bson.M{AccountUsername: username}, options.FindOne().SetProjection(projection)).Decode(&watchlist)
+		if err != nil {
+			log.Println(err.Error())
+		}
+		return watchlist.MovieWatchlist
+	default:
+		projection = bson.M{showWatchList: 1, "_id": 0}
+		err := Db.FindOne(context.TODO(), bson.M{AccountUsername: username}, options.FindOne().SetProjection(projection)).Decode(&watchlist)
+		if err != nil {
+			log.Println(err.Error())
+		}
+		return watchlist.ShowWatchlist
+	}
+
+}
+
+func RemoveMovieFromWatchlist(username string, id int) (int, string) {
+	if UsernameExistsEh(username) {
+		return removeFromWatchlist(username, Movie, id)
+	} else {
+		return http.StatusNotFound, "User does not exist"
+	}
+}
+
+func RemoveShowFromWatchlist(username string, id int) (int, string) {
+	if UsernameExistsEh(username) {
+		return removeFromWatchlist(username, Show, id)
+	} else {
+		return http.StatusNotFound, "User does not exist"
+	}
+}
+
+func removeFromWatchlist(username string, mediaType int, id int) (int, string) {
+	whoQuery := bson.M{AccountUsername: username}
+	var updateQuery bson.M
+	switch mediaType {
+	case Movie:
+		updateQuery = bson.M{"$pull": bson.M{movieWatchList: id}}
+	default:
+		updateQuery = bson.M{"$pull": bson.M{showWatchList: id}}
+	}
+	res, err := Db.UpdateOne(context.TODO(), whoQuery, updateQuery)
+	if err != nil {
+		log.Println(err.Error())
+	}
+	if res.ModifiedCount != 1 {
+		return http.StatusExpectationFailed, "Did not remove only one!"
+	} else {
+		return http.StatusOK, "Removed!"
+	}
 }

@@ -6,19 +6,21 @@ import (
 	"github.com/labstack/echo/v4"
 	"log"
 	"net/http"
+	"net/url"
 	"shows/model"
 	"shows/variable"
+	"strings"
 )
 
 func SearchMovie(c echo.Context) error {
 	var status = http.StatusOK
-	keywords := c.Param(variable.Keywords)
+	keywords := url.QueryEscape(c.Param(variable.Keywords))
 	pageNumber, err := getPageNumber(c.Param(variable.Page))
 	if err != nil {
 		log.Println("Error when getting page number for Searching movie")
 	}
 	options, err := getSearchOptions(c)
-	uri := fmt.Sprintf("%vsearch/movie%v&%v&query=%v&%s=%v", variable.BaseUrl, getApiAuth(), options, keywords, variable.Page, pageNumber)
+	uri := fmt.Sprintf("%vsearch/movie%v%v&query=%s&%s=%v", variable.BaseUrl, getApiAuth(), options, keywords, variable.Page, pageNumber)
 	resp, err := http.Get(uri)
 	if err != nil {
 		log.Println("Error when trying to search for movies")
@@ -121,7 +123,28 @@ func DiscoverMovies(c echo.Context) error {
 		uri = fmt.Sprintf("%v&%v=%v", uri, variable.Genre, genres)
 	}
 	if providersIds != "" {
-		uri = fmt.Sprintf("%v&%v=%v", uri, variable.ProvidersIds, providersIds)
+		//uri = fmt.Sprintf("%v&%v=%v", uri, variable.ProvidersIds, providersIds)
+		providers := strings.Split(providersIds, ",")
+		var totalResults = &model.Result{}
+		for _, provider := range providers {
+			var results = &model.Result{}
+			uri2 := fmt.Sprintf("%v&%v=%v", uri, variable.ProvidersIds, provider)
+			uri2 = fmt.Sprintf("%v&%v=%v", uri2, variable.Page, pageNumber)
+			res, err := http.Get(uri2)
+			if err != nil {
+				log.Println("Error during getting discover shows")
+				status = http.StatusExpectationFailed
+			}
+			if err = json.NewDecoder(res.Body).Decode(&results); err != nil {
+				log.Println("Error during decoding of discover shows")
+				status = http.StatusExpectationFailed
+			}
+			assignShowGenre(results)
+			totalResults.Results = append(totalResults.Results, results.Results...)
+		}
+		totalResults.TotalResults = new(int64)
+		*totalResults.TotalResults = int64(len(totalResults.Results))
+		return c.JSON(status, totalResults)
 	}
 	//if keywords != "" {
 	//	uri = fmt.Sprintf("%v&%v=%v", uri, variable.Keywords, keywords)
@@ -141,4 +164,18 @@ func DiscoverMovies(c echo.Context) error {
 	}
 	assignMovieGenre(results)
 	return c.JSON(status, results)
+}
+
+func GetMovies(c echo.Context) error {
+	var movieIds []int
+	if err := c.Bind(&movieIds); err != nil {
+		log.Println(err.Error())
+	}
+	var movies model.Result
+	movies.Results = make([]model.Media, 0)
+	for _, id := range movieIds {
+		movies.Results = append(movies.Results, getMedia(Movie, id))
+	}
+	return c.JSON(http.StatusOK, movies)
+
 }

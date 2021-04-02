@@ -1,11 +1,18 @@
 package Handler
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
 	"github.com/labstack/echo/v4"
 	"github.com/superDeano/account/Dao"
 	"github.com/superDeano/account/Model"
+	"log"
 	"net/http"
+	"strconv"
 )
+
+var ShowsMsBaseUrl string
 
 func AddAccount(c echo.Context) error {
 	user := &Model.Account{}
@@ -62,4 +69,81 @@ func Test(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, "It seems like database connection is not too great")
 	}
 
+}
+
+func AddShowToWatchlist(c echo.Context) error {
+	user := c.Param(Dao.AccountUsername)
+	showId, err := strconv.Atoi(c.Param(Dao.ShowId))
+	if err != nil {
+		return c.JSON(http.StatusNotAcceptable, "Error with show id")
+	}
+	resStatus, errMsg := Dao.AddShowToWatchList(user, showId)
+	return c.JSON(resStatus, errMsg)
+}
+
+func AddMovieToWatchlist(c echo.Context) error {
+	user := c.Param(Dao.AccountUsername)
+	movieId, err := strconv.Atoi(c.Param(Dao.MovieId))
+	if err != nil {
+		return c.JSON(http.StatusNotAcceptable, "Error with movie id")
+	}
+	resStatus, errMsg := Dao.AddMovieToWatchlist(user, movieId)
+	return c.JSON(resStatus, errMsg)
+
+}
+
+func RemoveShowFromWatchlist(c echo.Context) error {
+	user := c.Param(Dao.AccountUsername)
+	showId, err := strconv.Atoi(c.Param(Dao.ShowId))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, "Error with showId!")
+	}
+	status, res := Dao.RemoveShowFromWatchlist(user, showId)
+	return c.JSON(status, res)
+}
+
+func RemoveMovieFromWatchlist(c echo.Context) error {
+	user := c.Param(Dao.AccountUsername)
+	movieId, err := strconv.Atoi(c.Param(Dao.ShowId))
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, "Error with movieId!")
+	}
+	status, res := Dao.RemoveMovieFromWatchlist(user, movieId)
+	return c.JSON(status, res)
+}
+
+func GetShowWatchlist(c echo.Context) error {
+	user := c.Param(Dao.AccountUsername)
+	status, res := Dao.GetShowWatchlist(user)
+	if ShowsMsBaseUrl != "" {
+		return c.JSON(status, getMediaDetails(Dao.Show, res))
+	}
+	return c.JSON(status, res)
+}
+
+func GetMovieWatchlist(c echo.Context) error {
+	user := c.Param(Dao.AccountUsername)
+	status, res := Dao.GetMovieWatchlist(user)
+	if ShowsMsBaseUrl != "" {
+		return c.JSON(status, getMediaDetails(Dao.Movie, res))
+	}
+	return c.JSON(status, res)
+}
+
+func getMediaDetails(mediaType int, mediaIds []int) Model.Result {
+	var url string
+	if mediaType == Dao.Movie {
+		url = fmt.Sprintf("%vmedia/movies", ShowsMsBaseUrl)
+	} else {
+		url = fmt.Sprintf("%vmedia/shows", ShowsMsBaseUrl)
+	}
+	b, err := json.Marshal(&mediaIds)
+	if err != nil {
+		log.Panicln("Could not transform mediaIds to json marshall")
+	}
+	body := bytes.NewBuffer(b)
+	res, err := http.Post(url, "application/json", body)
+	var results = Model.Result{}
+	json.NewDecoder(res.Body).Decode(&results)
+	return results
 }
