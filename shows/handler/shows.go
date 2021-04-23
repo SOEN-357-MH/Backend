@@ -303,7 +303,7 @@ func GetShows(c echo.Context) error {
 	var shows model.Result
 	shows.Results = make([]model.Media, 0)
 	for _, id := range *showIds {
-		shows.Results = append(shows.Results, getMedia(Movie, id))
+		shows.Results = append(shows.Results, getMedia(Show, id))
 	}
 	return c.JSON(http.StatusOK, shows)
 }

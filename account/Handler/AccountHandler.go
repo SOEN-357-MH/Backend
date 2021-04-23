@@ -144,6 +144,6 @@ func getMediaDetails(mediaType int, mediaIds []int) Model.Result {
 	body := bytes.NewBuffer(b)
 	res, err := http.Post(url, "application/json", body)
 	var results = Model.Result{}
-	json.NewDecoder(res.Body).Decode(&results)
+	_ = json.NewDecoder(res.Body).Decode(&results)
 	return results
 }

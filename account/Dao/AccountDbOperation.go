@@ -34,7 +34,8 @@ func AddUser(u *Model.Account) bool {
 	if CheckUsernameOrEmailInUser(u.Username, u.Email) {
 		return false
 	}
-
+	u.MovieWatchlist = make([]int, 0)
+	u.ShowWatchlist = make([]int, 0)
 	_, err := Db.InsertOne(context.TODO(), &u)
 	if err != nil {
 		panic(err.Error())
@@ -127,6 +128,7 @@ func addMediaToWatchlist(username string, mediaType int, id int) (int, string) {
 		insert = bson.M{"$addToSet": bson.M{showWatchList: id}}
 	}
 	res, err := Db.UpdateOne(context.TODO(), match, insert)
+
 	if err != nil {
 		log.Printf(err.Error())
 		return http.StatusExpectationFailed, err.Error()
